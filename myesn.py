@@ -6,6 +6,7 @@ from numpy import *
 from matplotlib.pyplot import *
 import scipy.linalg
 
+import visualization
 from Util import encode, decode, winnertakesall, mixedstrategy, draw, sigmoind, rmse
 
 class myesn:
@@ -40,23 +41,20 @@ class myesn:
 
 		rhow = max(abs(linalg.eig(W)[0]))	
 		W *= 1.25 / rhow
-		#W /= (0.2 + rhow)
 		self._W = W
 
 	def runAndCollectX(self, initLen):
 		self._X = zeros((1 + self._in_units + self._h_units, len(self._data) - initLen - 1))
 		self._Y = self._data[initLen+1:len(self._data)] 
-		#print array(self._X).shape, " _X VS _Y ", matrix(self._Y).shape
+		print array(self._X).shape, " _X VS _Y ", matrix(self._Y).shape
 
 		x = zeros((self._h_units,1))
 		for t in range(len(self._data)-1):
-    			u = self._data[t]
+			u = self._data[t]
 			u = array([u]).T
-			#print array(u).shape
-    			x = (1-self._a)*x + self._a*tanh( dot( self._Win, vstack((1,u)) ) + dot( self._W, x ) )
-			if (t > initLen):			
+			x = (1-self._a)*x + self._a*tanh( dot( self._Win, vstack((1,u)) ) + dot( self._W, x ) )
+			if (t >= initLen):			
 				self._X[:,t - initLen] = vstack((1,u,x))[:,0]
-				#print array(u).shape, array(x).shape
 
 	def trainWout(self, reg):
 		X_T = self._X.T
@@ -73,55 +71,34 @@ class myesn:
 		x = zeros((self._h_units,1))
 		trainingError = 0
 		for t in range(testLen - 1):
-    			x = (1-self._a)*x + self._a*tanh( dot( self._Win, vstack((1,u)) ) + dot( self._W, x ) )
+			x = (1-self._a)*x + self._a*tanh( dot( self._Win, vstack((1,u)) ) + dot( self._W, x ) )
 			y = dot( self._Wout, vstack((1,u,x)) )
-    			Y[:,t] = y[0,:]
-			#y += 0.1
-			#sigmoind(y)
-			u = y
-			"""for index in range(29):
-				if (random.rand() < 0.05):
-					u[index,0] = u[index,0] + random.rand()
-			"""
+			#if t >= 200 and t <= 210:
+			#	visualization.plot_vector(y)
+			Y[:,t] = y[0,:]
 			if (t > initLen):
-				#print "P ", y.T
-				#next = decode(draw(y[0,:]))
-				#next = decode(winnertakesall(y[0,:]))
 				next = decode(mixedstrategy(y, power))
 				poem += next
 				trainingError += rmse(y[0,:], self._data[t+1]) 
-			#u = array([encode(decode(mixedstrategy(y, power)))]).T
 			u = array([self._data[t+1]]).T
 
 		print "Training error ", trainingError	
 		print poem
 		print "\n"
 
-alpha = 0.7
-while (alpha >= 0):
-	resSize = 400
-	while (resSize < 500):
-		ridge = 1e-9
-		while (ridge <= 1):
-			power = 1.5
-			while (power < 2.5):
-				print "alpha=", alpha, " resSize=", resSize, " ridge=", ridge, " power=", power
-				esn = myesn(29, resSize, 29, alpha)
-				esn.initData("backup.txt")
-				esn.setWinAndW()
-				esn.runAndCollectX(1000)
-				esn.trainWout(ridge)
-				esn.run(1000, 500, power)
-				power += 0.5
-			ridge *= 10
-		resSize *= 2
-	alpha -= 0.1
-"""
-esn = myesn(29, 58, 29, 0.7)
-esn.initData("mytext.txt")
-esn.setWinAndW()
-esn.runAndCollectX(1000)
-esn.trainWout(1e-12)
-esn.run(1000, 500, 2)
-"""
+alpha = 1
+resSize = 400
+power = 3
+ridge = 1e-15
+
+while power <= 3:
+	while ridge >= 1e-18:
+		esn = myesn(29, resSize, 29, alpha)
+		esn.initData("data/red_riding_hood.txt")
+		esn.setWinAndW()
+		esn.runAndCollectX(1500)
+		esn.trainWout(ridge)
+		esn.run(1000, 500, power)
+		ridge = ridge * 1e-1
+	power += 0.5
 

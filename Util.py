@@ -6,6 +6,7 @@ ESN for text modelling
 from math import exp
 from numpy import *
 import random
+import visualization
 
 def sigmoind(x):
 	rows = matrix(x).shape[0]
@@ -31,7 +32,7 @@ def encode(character):
 			vector[26] = 1
 
 		elif (ord(character) >= ord('a') and ord(character) <= ord('z')):
-			vector[ord(character) - 97] = 1
+			vector[ord(character) - ord('a')] = 1
 
 		return vector 
 
@@ -45,7 +46,12 @@ def decode(next):
 		if (next == 26):
 			return '.'
 
-		return str(unichr(next + 97));
+		next += ord('a')
+		if (next >= ord('a') and next <= ord('z')):
+			return str(unichr(next))
+		
+		print next, " did not match anything"
+		return ' ' 
 
 def winnertakesall(prediction):
 	maximum = prediction[0]
@@ -68,14 +74,17 @@ def draw(prediction):
 	if (len(newlist) == 0):
 		return 0
 	random.shuffle(newlist)
+	#print newlist
+	#visualization.plot_vector(newlist)
 	index = random.randint(0, len(newlist)-1)
 	return newlist[index]
 
 def mixedstrategy(prediction, power):
 	newlist = []
-	#print prediction
 	for i in range(len(prediction)):
-		newlist.append(pow(prediction[i, 0], power))
+		p = prediction[i, 0]
+		newlist.append(pow(p, power))
+	#visualization.plot_vector(prediction)
 	return draw(newlist)
 
 def rmse(prediction, target):
